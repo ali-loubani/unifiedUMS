@@ -1,0 +1,107 @@
+import {
+  Card,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TablePagination,
+  TableRow,
+} from "@mui/material";
+import { Scrollbar } from "src/components/scrollbar";
+import { useEffect, useState } from "react";
+import { Box } from "@mui/system";
+
+export const AnswersTable = ({searchQuery = '' }) => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [page, setPage] = useState(0);
+
+
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(+event.target.value);
+    setPage(0);
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const response = await fetch("http://guesswhoservice.com/api/answers.php");
+
+      const jsonData = await response.json();
+      setData(jsonData.answers);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredData = data && data.filter((answer) => {
+    return answer.questionId.includes(searchQuery)
+  });
+
+  return (
+    <>
+      <Card>
+        <Scrollbar>
+          <Box sx={{ minWidth: 800 }}>
+            <Table id="answers">
+              <TableHead>
+                <TableRow>
+                  <TableCell align="center">id</TableCell>
+                  <TableCell align="center">Question id</TableCell>
+                  <TableCell align="center">Valid</TableCell>
+                  <TableCell align="center">English</TableCell>
+                  <TableCell align="center">arabic</TableCell>
+                  <TableCell align="center">Date</TableCell>
+                </TableRow>
+              </TableHead>
+              {loading ? (
+                <CircularProgress />
+              ) : (
+                <TableBody>
+                  {filteredData &&
+                    filteredData
+                    .sort((a, b)=> {return a.questionId - b.questionId})
+                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                    .map((answer, index) => {
+                        return (
+                          <TableRow hover
+                          key={answer.id}>
+                            <TableCell align="center">{answer.id}</TableCell>
+                            <TableCell align="center">{answer.questionId}</TableCell>
+                            <TableCell align="center">{answer.valid}</TableCell>
+                            <TableCell align="center">{answer.english}</TableCell>
+                            <TableCell align="center">{answer.arabic}</TableCell>
+                            <TableCell align="center">{answer.inDate.substring(0, 10)}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                </TableBody>
+              )}
+            </Table>
+          </Box>
+        </Scrollbar>
+        <TablePagination
+          rowsPerPageOptions={[10, 25, 50, 100, (filteredData && filteredData.length) > 100 && Number(filteredData.length)]}
+          component="div"
+          count={(filteredData && filteredData.length) || 0}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+      </Card>
+    </>
+  );
+};
